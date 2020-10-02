@@ -55,7 +55,10 @@ impl ChessController {
         }
         if let Some(Button::Mouse(MouseButton::Left)) = event.press_args() {
             if !self.game_over {
-                let (x, y) = (self.mouse_pos[0] - view_pos[0], self.mouse_pos[1]);
+                let (x, y) = (
+                    self.mouse_pos[0] - view_pos[0],
+                    self.mouse_pos[1] - view_pos[1],
+                );
                 if x > 0.0 && x < view_size && y > 0.0 && y < view_size {
                     let (x, y) = ((x / view_size * 8.0) as u8, 7 - (y / view_size * 8.0) as u8);
                     if let Some(highlighted_spaces) = &self.highlighted_spaces {
