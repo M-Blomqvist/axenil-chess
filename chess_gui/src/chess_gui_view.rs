@@ -26,8 +26,8 @@ impl ChessView {
         let board_area = [
             settings.position[0],
             settings.position[1],
-            settings.size + settings.grid_width,
-            settings.size + settings.grid_width,
+            settings.size,
+            settings.size,
         ];
 
         Rectangle::new(settings.background_color).draw(
@@ -39,7 +39,8 @@ impl ChessView {
 
         let black_space = Rectangle::new(settings.black_color);
         let white_space = Rectangle::new(settings.white_color);
-        let space_size = settings.size / 8.0 - settings.grid_width;
+        let space_size = (settings.size - settings.grid_width) / 8.0 - settings.grid_width;
+        println!("{}", space_size);
         let mut draw_black = false;
 
         for y in 0..8 {
@@ -135,8 +136,6 @@ pub struct ViewSettings {
 
 impl ViewSettings {
     pub fn default_view(size: f64, piece_imgs: HashMap<String, Texture>) -> ViewSettings {
-        let grid_width = size / 100.0;
-        let size = size - grid_width;
         ViewSettings {
             piece_imgs,
             position: [0.0; 2],
@@ -146,7 +145,7 @@ impl ViewSettings {
             black_color: [0.415, 0.364, 0.223, 1.0],
             selection_color: [0.133, 0.725, 0.694, 0.5],
             highlight_color: [0.8, 0.909, 0.552, 0.8],
-            grid_width,
+            grid_width: size / 100.0,
         }
     }
 }

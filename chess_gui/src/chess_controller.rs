@@ -52,6 +52,7 @@ impl ChessController {
     pub fn event<E: GenericEvent>(&mut self, view_pos: [f64; 2], view_size: f64, event: &E) {
         if let Some(pos) = event.mouse_cursor_args() {
             self.mouse_pos = pos;
+            println!("{:?}", self.mouse_pos);
         }
         if let Some(Button::Mouse(MouseButton::Left)) = event.press_args() {
             if !self.game_over {
