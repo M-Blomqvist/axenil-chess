@@ -130,23 +130,23 @@ pub struct ViewSettings {
     pub black_color: Color,
     pub selection_color: Color,
     pub highlight_color: Color,
-    pub board_edge_radius: f64,
     pub grid_width: f64,
 }
 
 impl ViewSettings {
-    pub fn default_view(piece_imgs: HashMap<String, Texture>) -> ViewSettings {
+    pub fn default_view(size: f64, piece_imgs: HashMap<String, Texture>) -> ViewSettings {
+        let grid_width = size / 100.0;
+        let size = size - grid_width;
         ViewSettings {
             piece_imgs,
-            position: [10.0; 2],
-            size: 400.0,
+            position: [0.0; 2],
+            size,
             background_color: [0.313, 0.2, 0.007, 1.0],
             white_color: [0.882, 0.878, 0.858, 1.0],
             black_color: [0.415, 0.364, 0.223, 1.0],
             selection_color: [0.133, 0.725, 0.694, 0.5],
             highlight_color: [0.8, 0.909, 0.552, 0.8],
-            board_edge_radius: 5.0,
-            grid_width: 6.0,
+            grid_width,
         }
     }
 }
