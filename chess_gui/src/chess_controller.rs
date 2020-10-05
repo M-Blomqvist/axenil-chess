@@ -49,10 +49,15 @@ impl ChessController {
         }
     }
 
-    pub fn event<E: GenericEvent>(&mut self, view_pos: [f64; 2], view_size: f64, event: &E) {
+    pub fn event<E: GenericEvent>(
+        &mut self,
+        view_pos: [f64; 2],
+        view_size: f64,
+        view_grid_width: f64,
+        event: &E,
+    ) {
         if let Some(pos) = event.mouse_cursor_args() {
             self.mouse_pos = pos;
-            println!("{:?}", self.mouse_pos);
         }
         if let Some(Button::Mouse(MouseButton::Left)) = event.press_args() {
             if !self.game_over {
@@ -60,8 +65,17 @@ impl ChessController {
                     self.mouse_pos[0] - view_pos[0],
                     self.mouse_pos[1] - view_pos[1],
                 );
-                if x > 0.0 && x < view_size && y > 0.0 && y < view_size {
-                    let (x, y) = ((x / view_size * 8.0) as u8, 7 - (y / view_size * 8.0) as u8);
+                let (int_x, int_y) = ((x / view_size * 8.0) as u8, (y / view_size * 8.0) as u8);
+                if x > 0.0
+                    && x < view_size
+                    && y > 0.0
+                    && y < view_size
+                    && (x - int_x as f64 * ((view_size - view_grid_width) / 8.0)) > view_grid_width
+                    && (y - int_y as f64 * ((view_size - view_grid_width) / 8.0)) > view_grid_width
+                    && (x - (int_x + 1) as f64 * ((view_size - view_grid_width) / 8.0)) < 0.0
+                    && (y - (int_y + 1) as f64 * ((view_size - view_grid_width) / 8.0)) < 0.0
+                {
+                    let (x, y) = (int_x, 7 - int_y);
                     if let Some(highlighted_spaces) = &self.highlighted_spaces {
                         for spaces in highlighted_spaces {
                             if x == spaces.0 as u8 && y == 7 - spaces.1 as u8 {

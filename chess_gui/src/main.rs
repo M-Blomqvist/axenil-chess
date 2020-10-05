@@ -18,7 +18,7 @@ mod chess_gui_view;
 fn main() {
     let opengl = OpenGL::V3_2;
 
-    let settings = WindowSettings::new("chessGUI", [500; 2]).exit_on_esc(true); //Only supports square resolutions
+    let settings = WindowSettings::new("chessGUI", [600; 2]).exit_on_esc(true); //Only supports square resolutions
     let mut window: GlutinWindow = settings.build().expect("Error building Glutin_window!");
 
     let mut events = Events::new(EventSettings::new().lazy(true));
@@ -37,6 +37,7 @@ fn main() {
         chess_controller.event(
             chess_view.settings.position,
             chess_view.settings.size,
+            chess_view.settings.grid_width,
             &event,
         );
         if let Some(args) = event.render_args() {

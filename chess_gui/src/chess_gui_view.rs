@@ -40,7 +40,6 @@ impl ChessView {
         let black_space = Rectangle::new(settings.black_color);
         let white_space = Rectangle::new(settings.white_color);
         let space_size = (settings.size - settings.grid_width) / 8.0 - settings.grid_width;
-        println!("{}", space_size);
         let mut draw_black = false;
 
         for y in 0..8 {
