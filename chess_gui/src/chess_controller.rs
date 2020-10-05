@@ -88,13 +88,30 @@ impl ChessController {
                                         break;
                                     }
                                 }
-                                let mut input = rust_chess::board::position_to_string(
+                                let mut input: String = rust_chess::board::position_to_string(
                                     self.selected_space.expect("no inital piece selection").1,
                                     self.selected_space.expect("no inital piece selection").0,
                                 ) + " ";
                                 input
                                     .push_str(rust_chess::board::position_to_string(y, x).as_str());
 
+                                if let rust_chess::units::Variety::Pawn = self
+                                    .chess_board
+                                    .get_square(
+                                        self.selected_space.expect("no inital piece selection").0
+                                            as usize,
+                                        7 - self
+                                            .selected_space
+                                            .expect("no inital piece selection")
+                                            .1 as usize,
+                                    )
+                                    .piece
+                                    .variety
+                                {
+                                    if y == 0 || y == 7 {
+                                        input.push_str("=Q");
+                                    }
+                                }
                                 self.game_over = self.chess_board.make_move(input.as_str()).0;
                                 self.update_board();
                                 break;
@@ -106,11 +123,13 @@ impl ChessController {
                     } else {
                         self.selected_space = Some((x, y));
                         let pos = rust_chess::board::position_to_string(y, x);
+                        self.chess_board.set_promotion(true);
                         let mut possible_moves = self.chess_board.get_moves(pos.as_str());
+                        self.chess_board.set_promotion(false);
                         //Workaround for castling to work
                         if let rust_chess::units::Variety::King = self
                             .chess_board
-                            .get_square(x as usize, y as usize)
+                            .get_square(x as usize, 7 - y as usize)
                             .piece
                             .variety
                         {

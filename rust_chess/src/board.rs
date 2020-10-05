@@ -97,6 +97,11 @@ impl Board {
         self.passant
     }
 
+    //Needed for promotion to show up in the GUI, sadly the least intrusive way of doing so
+    pub fn set_promotion(&mut self, val: bool) {
+        self.promotion = val;
+    }
+
     pub fn get_promotion(&self) -> bool {
         self.promotion
     }
