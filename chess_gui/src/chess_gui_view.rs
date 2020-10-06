@@ -4,7 +4,6 @@ use graphics::{types::Color, Context, Graphics, Image};
 use opengl_graphics::Texture;
 
 use super::chess_controller::ChessController;
-
 pub struct ChessView {
     pub settings: ViewSettings,
 }
@@ -20,7 +19,7 @@ impl ChessView {
         context: &Context,
         g: &mut G,
     ) {
-        use graphics::{rectangle, Line, Rectangle};
+        use graphics::{rectangle, Rectangle};
 
         let settings = &self.settings;
         let board_area = [
