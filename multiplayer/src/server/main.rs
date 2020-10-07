@@ -21,15 +21,15 @@ fn start_host(ip: &str) {
 fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [255; 5];
 
-    let mut response = [Messages::Decline as u8];
+    let mut response = [Message::Decline as u8];
 
     if let Ok(_) = stream.read(&mut buffer) {
         println!("Recieved Message: {:?}", buffer);
         for part in buffer.iter() {
-            println!("{}", byte_to_string(part));
+            println!("{}", Message::from(*part).to_string());
         }
-        if buffer.contains(&(Messages::Accept as u8)) {
-            response = [Messages::Accept as u8];
+        if buffer.contains(&(Message::Accept as u8)) {
+            response = [Message::Accept as u8];
         }
     } else {
         println!("Error reading stream")
