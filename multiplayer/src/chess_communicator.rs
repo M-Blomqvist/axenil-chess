@@ -8,6 +8,21 @@ pub enum Messages {
     Resign = 0x06,
 }
 
+impl Messages {
+    pub fn to_string(&self) -> String {
+        match &self {
+            Decline => "Decline message".to_string(),
+            Move => "Move message".to_string(),
+            Undo => "Undo message".to_string(),
+            Accept => "Accept message".to_string(),
+            Checkmate => "Checkmate message".to_string(),
+            Draw => "Draw message".to_string(),
+            Resign => "Resign message".to_string(),
+            _ => "Unknown message".to_string(),
+        }
+    }
+}
+
 pub fn byte_to_string(message: &u8) -> String {
     match message {
         Decline => "Decline message".to_string(),
