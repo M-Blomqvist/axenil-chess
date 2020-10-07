@@ -24,49 +24,61 @@ fn start_host(ip: &str) {
 fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [255; 5];
 
-    stream.read(&mut buffer).unwrap();
+    let mut response = [Messages::Decline as u8];
 
-    let response = if buffer.contains(&(Messages::Accept as u8)) {
-        [Messages::Accept as u8]
+    if let Ok(_) = stream.read(&mut buffer) {
+        println!("Recieved Message:");
+        for part in buffer.iter() {
+            print!("{}", chess_communicator::byte_to_string(part));
+        }
+        if buffer.contains(&(Messages::Accept as u8)) {
+            response = [Messages::Accept as u8];
+        }
     } else {
-        [Messages::Decline as u8]
-    };
+        println!("Error reading stream")
+    }
 
     stream.write_all(&response).unwrap();
     stream.flush().unwrap();
 }
+
 fn connect_client(ip: &str) -> Result<String> {
     if let Ok(mut stream) = TcpStream::connect(ip) {
         println!("Connection established to: {}", ip);
         stream.write_all(&[Messages::Accept as u8])?;
         println!("Sent accept message...");
-        let mut buffer = [255; 5];
-        if let Ok(len) = stream.read(&mut buffer) {
-            if len <= buffer.len() {
-                if buffer.contains(&(Messages::Accept as u8)) {
-                    Ok(format!(
-                        "Got accept message back! Message: {}",
-                        String::from_utf8_lossy(&buffer[..])
-                    ))
-                } else {
-                    Err(Error::new(
-                        ErrorKind::Other,
-                        "No accept message back!".to_string(),
-                    ))
-                }
+        send_message(&mut stream, Messages::Accept)?;
+    } else {
+        panic!("Error connecting to {}", ip);
+    }
+    Ok("Connection successfully used & terminated".to_string())
+}
+
+fn send_message(stream: &mut TcpStream, message: Messages) -> Result<String> {
+    let mut buffer = [255; 5];
+    if let Ok(len) = stream.read(&mut buffer) {
+        if len <= buffer.len() {
+            if buffer.contains(&(message as u8)) {
+                Ok(format!(
+                    "Got accept message back! Message: {}",
+                    String::from_utf8_lossy(&buffer[..])
+                ))
             } else {
                 Err(Error::new(
                     ErrorKind::Other,
-                    "Buffer shorter than message!".to_string(),
+                    "No accept message back!".to_string(),
                 ))
             }
         } else {
             Err(Error::new(
                 ErrorKind::Other,
-                "Error reading response from stream!".to_string(),
+                "Buffer shorter than message!".to_string(),
             ))
         }
     } else {
-        panic!("Error connecting to {}", ip);
+        Err(Error::new(
+            ErrorKind::Other,
+            "Error reading response from stream!".to_string(),
+        ))
     }
 }
