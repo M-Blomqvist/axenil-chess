@@ -34,7 +34,7 @@ fn start_host(ip: SocketAddrV4) -> Result<Sender<[u8; 5]>> {
 
         let buffer = [255; 5];
         recieve_message(&mut stream, buffer, Some(Message::Accept))?;
-        println!("{}", send_message(&mut stream, Message::Accept)?);
+        send_message(&mut stream, Message::Accept)?;
 
         let (sender, reciever) = channel::<[u8; 5]>();
         thread::spawn(move || {
@@ -53,7 +53,7 @@ fn connect_client(ip: SocketAddrV4) -> Result<Sender<[u8; 5]>> {
     if let Ok(mut stream) = TcpStream::connect(ip) {
         println!("Connection established to: {}", ip);
 
-        println!("{}", send_message(&mut stream, Message::Accept)?);
+        send_message(&mut stream, Message::Accept)?;
 
         let buffer = [255; 5];
         recieve_message(&mut stream, buffer, Some(Message::Accept))?;
@@ -76,19 +76,25 @@ fn std_loop(stream: &mut TcpStream, rx: Receiver<[u8; 5]>) {
             if message_type != Message::Move {
                 if let Err(error) = send_message(stream, message_type) {
                     println!("Error sending message: {}", error.to_string());
+                } else {
                 }
             }
+        } else {
+            println!(
+                "{:?}",
+                recieve_message(stream, buffer, None).expect("error reading message")
+            );
         }
-        recieve_message(stream, buffer, None).expect("error reading message");
         thread::sleep(Duration::from_millis(1));
     }
 }
 
-fn send_message(stream: &mut TcpStream, message: Message) -> Result<String> {
+fn send_message(stream: &mut TcpStream, message: Message) -> Result<()> {
     let message_string = message.to_string();
     stream.write_all(&[message as u8])?;
     stream.flush()?;
-    Ok(format!("Sent {}...", message_string))
+    println!("Sent {}...", message_string);
+    Ok(())
 }
 
 // fn send_move(stream: &mut TcpStream, message: MoveMessage) -> Result<String> {
