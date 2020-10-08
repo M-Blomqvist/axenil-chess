@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 use rust_chess::units;
 
 #[test]

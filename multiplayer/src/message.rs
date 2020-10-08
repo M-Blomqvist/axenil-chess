@@ -1,3 +1,4 @@
+#[derive(Copy, Clone, PartialEq)]
 pub enum Message {
     Decline = 0x00,
     Move = 0x01,

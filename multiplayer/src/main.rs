@@ -38,16 +38,11 @@ fn start_host(ip: SocketAddrV4) {
 fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [255; 5];
 
-    let mut response = [Message::Decline as u8];
-
-    if let Ok(_) = stream.read(&mut buffer) {
-        println!("Recieved Message: {}", Message::from(buffer[0]));
-        if buffer.contains(&(Message::Accept as u8)) {
-            response = [Message::Accept as u8];
-        }
+    let mut response = if recieve_message(&mut stream, &mut buffer, Some(Message::Accept)).is_ok() {
+        [Message::Accept as u8]
     } else {
-        println!("Error reading stream")
-    }
+        [Message::Decline as u8]
+    };
 
     stream.write_all(&response).unwrap();
     stream.flush().unwrap();
@@ -57,29 +52,44 @@ fn connect_client(ip: SocketAddrV4) -> Result<String> {
     if let Ok(mut stream) = TcpStream::connect(ip) {
         println!("Connection established to: {}", ip);
         println!("{}", send_message(&mut stream, Message::Accept)?);
+        let mut buffer = [255; 5];
+        println!(
+            "{}",
+            recieve_message(&mut stream, &mut buffer, Some(Message::Accept))?
+        );
     } else {
         panic!("Error connecting to {}", ip);
     }
     Ok("Connection successfully used & terminated".to_string())
 }
 
-pub fn send_message(stream: &mut TcpStream, message: Message) -> Result<String> {
-    let mut buffer = [255; 5];
+fn send_message(stream: &mut TcpStream, message: Message) -> Result<String> {
     let message_string = message.to_string();
     stream.write_all(&[message as u8])?;
-    println!("Sent {}...", message_string);
-    if let Ok(len) = stream.read(&mut buffer) {
+    Ok(format!("Sent {}...", message_string))
+}
+
+fn recieve_message(
+    stream: &mut TcpStream,
+    buffer: &mut [u8; 5],
+    expect_message: Option<Message>,
+) -> Result<String> {
+    if let Ok(len) = stream.read(buffer) {
         if len <= buffer.len() {
-            if buffer.contains(&(Message::Accept as u8)) {
-                Ok(format!(
-                    "Got accept message back! Message: {}",
-                    String::from_utf8_lossy(&buffer[..])
-                ))
+            if let Some(mess) = expect_message {
+                if buffer.contains(&(mess as u8)) {
+                    Ok(format!("Got expected {} back!", mess))
+                } else {
+                    Err(Error::new(
+                        ErrorKind::Other,
+                        format!(
+                            "Expected message not recieved! Got: {}",
+                            Message::from(buffer[0])
+                        ),
+                    ))
+                }
             } else {
-                Err(Error::new(
-                    ErrorKind::Other,
-                    "No accept message back!".to_string(),
-                ))
+                Ok(format!("Recieved {}!", Message::from(buffer[0])))
             }
         } else {
             Err(Error::new(
@@ -90,7 +100,7 @@ pub fn send_message(stream: &mut TcpStream, message: Message) -> Result<String> 
     } else {
         Err(Error::new(
             ErrorKind::Other,
-            "Error reading response from stream!".to_string(),
+            "Error reading stream!".to_string(),
         ))
     }
 }

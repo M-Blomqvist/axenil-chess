@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 use crate::board;
 use crate::units;
 use std::cmp;
