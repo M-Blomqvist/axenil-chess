@@ -39,6 +39,7 @@ fn start_host(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
         println!("Connection from {}", client);
         stream.set_read_timeout(Some(Duration::from_secs(1)))?;
         stream.set_write_timeout(Some(Duration::from_secs(1)))?;
+        stream.set_nonblocking(true)?;
 
         let buffer = [255; 5];
         recieve_message(&mut stream, buffer, Some(Message::Accept))?;
@@ -60,6 +61,9 @@ fn start_host(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
 fn connect_client(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
     if let Ok(mut stream) = TcpStream::connect(ip) {
         println!("Connection established to: {}", ip);
+        stream.set_read_timeout(Some(Duration::from_secs(1)))?;
+        stream.set_write_timeout(Some(Duration::from_secs(1)))?;
+        stream.set_nonblocking(true)?;
 
         send_message(&mut stream, Message::Accept)?;
 
@@ -131,11 +135,13 @@ fn recieve_message(
     mut buffer: [u8; 5],
     expect_message: Option<Message>,
 ) -> Result<[u8; 5]> {
-    if let Ok(len) = stream.read(&mut buffer[..]) {
+    println!("{:?}", stream.bytes());
+    let result = stream.read(&mut buffer[..]);
+    if result.is_ok() {
         if buffer == [255; 5] {
             return Ok(buffer);
         }
-        if len <= buffer.len() {
+        if result.unwrap() <= buffer.len() {
             if let Some(mess) = expect_message {
                 if mess == buffer[0] {
                     println!("Got expected {}!", mess);
@@ -160,9 +166,7 @@ fn recieve_message(
             ))
         }
     } else {
-        let mut buff = [0 as u8; 1024];
-        let n = stream.read(&mut buff[..]).unwrap();
-        println!("{}: {:?}", n, stream.bytes());
+        println!("{}", result.unwrap_err().to_string());
         panic!("Error reading stream!");
     }
 }
