@@ -1,14 +1,20 @@
-use std::io::{prelude::*, Error, ErrorKind, Result};
 use std::net::{SocketAddrV4, TcpListener, TcpStream};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
+use std::{
+    io::{prelude::*, Error, ErrorKind, Result},
+    thread::JoinHandle,
+};
 
 pub mod chess_communicator;
 pub mod message;
 use message::{Message, MoveMessage};
 
-pub fn start_multiplayer(connect_type: &str, ip: &str) -> Result<Sender<[u8; 5]>> {
+pub fn start_multiplayer(
+    connect_type: &str,
+    ip: &str,
+) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
     let is_host = match connect_type {
         "host" => true,
         "connect" => false,
@@ -25,7 +31,7 @@ pub fn start_multiplayer(connect_type: &str, ip: &str) -> Result<Sender<[u8; 5]>
     }
 }
 
-fn start_host(ip: SocketAddrV4) -> Result<Sender<[u8; 5]>> {
+fn start_host(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
     let listener = TcpListener::bind(ip).unwrap();
     println!("Started host at {}", ip);
 
@@ -37,10 +43,10 @@ fn start_host(ip: SocketAddrV4) -> Result<Sender<[u8; 5]>> {
         send_message(&mut stream, Message::Accept)?;
 
         let (sender, reciever) = channel::<[u8; 5]>();
-        thread::spawn(move || {
+        let handle = thread::spawn(move || {
             std_loop(&mut stream, reciever);
         });
-        Ok(sender)
+        Ok((sender, handle))
     } else {
         Err(Error::new(
             ErrorKind::Other,
@@ -49,7 +55,7 @@ fn start_host(ip: SocketAddrV4) -> Result<Sender<[u8; 5]>> {
     }
 }
 
-fn connect_client(ip: SocketAddrV4) -> Result<Sender<[u8; 5]>> {
+fn connect_client(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
     if let Ok(mut stream) = TcpStream::connect(ip) {
         println!("Connection established to: {}", ip);
 
@@ -59,10 +65,10 @@ fn connect_client(ip: SocketAddrV4) -> Result<Sender<[u8; 5]>> {
         recieve_message(&mut stream, buffer, Some(Message::Accept))?;
 
         let (sender, reciever) = channel::<[u8; 5]>();
-        thread::spawn(move || {
+        let handle = thread::spawn(move || {
             std_loop(&mut stream, reciever);
         });
-        Ok(sender)
+        Ok((sender, handle))
     } else {
         panic!("Error connecting to {}", ip);
     }
@@ -71,7 +77,9 @@ fn connect_client(ip: SocketAddrV4) -> Result<Sender<[u8; 5]>> {
 fn std_loop(stream: &mut TcpStream, rx: Receiver<[u8; 5]>) {
     let buffer = [255; 5];
     loop {
+        let mut counter = 0;
         if let Ok(message) = rx.try_recv() {
+            counter = 0;
             let message_type = Message::from(message);
             if message_type != Message::Move {
                 if let Err(error) = send_message(stream, message_type) {
@@ -80,10 +88,20 @@ fn std_loop(stream: &mut TcpStream, rx: Receiver<[u8; 5]>) {
                 }
             }
         } else {
-            println!(
-                "{:?}",
-                recieve_message(stream, buffer, None).expect("error reading message")
-            );
+            let result = recieve_message(stream, buffer, None);
+            if let Ok(message) = result {
+                if message != [255; 5] {
+                    counter = 0;
+                    println!("{}", Message::from(message));
+                } else {
+                    counter += 1;
+                    if counter > 1000 {
+                        break;
+                    }
+                }
+            } else {
+                println!("{}", result.unwrap_err().to_string());
+            }
         }
         thread::sleep(Duration::from_millis(1));
     }
