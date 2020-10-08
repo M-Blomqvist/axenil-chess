@@ -614,6 +614,9 @@ dependencies = [
 [[package]]
 name = "multiplayer"
 version = "0.1.0"
+dependencies = [
+ "chess_gui",
+]
 
 [[package]]
 name = "nix"
