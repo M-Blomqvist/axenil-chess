@@ -37,6 +37,8 @@ fn start_host(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
 
     if let Ok((mut stream, client)) = listener.accept() {
         println!("Connection from {}", client);
+        stream.set_read_timeout(Some(Duration::from_secs(1)))?;
+        stream.set_write_timeout(Some(Duration::from_secs(1)))?;
 
         let buffer = [255; 5];
         recieve_message(&mut stream, buffer, Some(Message::Accept))?;
@@ -74,9 +76,9 @@ fn connect_client(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)>
     }
 }
 
-fn std_loop(stream: TcpStream, rx: Receiver<[u8; 5]>) {
-    let buffer = [255; 5];
+fn std_loop(mut stream: TcpStream, rx: Receiver<[u8; 5]>) {
     loop {
+        let buffer = [255; 5];
         println!("h");
         let mut counter = 0;
         if let Ok(message) = rx.try_recv() {
@@ -104,12 +106,14 @@ fn std_loop(stream: TcpStream, rx: Receiver<[u8; 5]>) {
                 println!("{}", result.unwrap_err().to_string());
             }
         }
+        thread::sleep(Duration::from_millis(1));
     }
 }
 
 fn send_message(stream: &mut TcpStream, message: Message) -> Result<()> {
     let message_string = message.to_string();
-    stream.write_all(&[message as u8])?;
+    let s = stream.write(&[message as u8])?;
+    println!("{}", s);
     stream.flush()?;
     println!("Sent {}...", message_string);
     Ok(())
@@ -127,7 +131,7 @@ fn recieve_message(
     mut buffer: [u8; 5],
     expect_message: Option<Message>,
 ) -> Result<[u8; 5]> {
-    if let Ok(len) = stream.read(&mut buffer) {
+    if let Ok(len) = stream.read(&mut buffer[..]) {
         if buffer == [255; 5] {
             return Ok(buffer);
         }
@@ -156,6 +160,9 @@ fn recieve_message(
             ))
         }
     } else {
+        let mut buff = [0 as u8; 1024];
+        let n = stream.read(&mut buff[..]).unwrap();
+        println!("{}: {:?}", n, stream.bytes());
         panic!("Error reading stream!");
     }
 }
