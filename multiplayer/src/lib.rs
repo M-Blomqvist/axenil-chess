@@ -44,7 +44,7 @@ fn start_host(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
 
         let (sender, reciever) = channel::<[u8; 5]>();
         let handle = thread::spawn(move || {
-            std_loop(&mut stream, reciever);
+            std_loop(stream, reciever);
         });
         Ok((sender, handle))
     } else {
@@ -66,7 +66,7 @@ fn connect_client(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)>
 
         let (sender, reciever) = channel::<[u8; 5]>();
         let handle = thread::spawn(move || {
-            std_loop(&mut stream, reciever);
+            std_loop(stream, reciever);
         });
         Ok((sender, handle))
     } else {
@@ -74,27 +74,28 @@ fn connect_client(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)>
     }
 }
 
-fn std_loop(stream: &mut TcpStream, rx: Receiver<[u8; 5]>) {
+fn std_loop(stream: TcpStream, rx: Receiver<[u8; 5]>) {
     let buffer = [255; 5];
     loop {
+        println!("h");
         let mut counter = 0;
         if let Ok(message) = rx.try_recv() {
             counter = 0;
             let message_type = Message::from(message);
             if message_type != Message::Move {
-                if let Err(error) = send_message(stream, message_type) {
+                if let Err(error) = send_message(&mut stream, message_type) {
                     println!("Error sending message: {}", error.to_string());
                 } else {
                 }
             }
         } else {
-            let result = recieve_message(stream, buffer, None);
+            let result = recieve_message(&mut stream, buffer, None);
             if let Ok(message) = result {
                 if message != [255; 5] {
                     counter = 0;
-                    println!("{}", Message::from(message));
                 } else {
                     counter += 1;
+                    println!("counter");
                     if counter > 1000 {
                         break;
                     }
@@ -103,7 +104,6 @@ fn std_loop(stream: &mut TcpStream, rx: Receiver<[u8; 5]>) {
                 println!("{}", result.unwrap_err().to_string());
             }
         }
-        thread::sleep(Duration::from_millis(1));
     }
 }
 
@@ -156,9 +156,6 @@ fn recieve_message(
             ))
         }
     } else {
-        Err(Error::new(
-            ErrorKind::Other,
-            "Error reading stream!".to_string(),
-        ))
+        panic!("Error reading stream!");
     }
 }
