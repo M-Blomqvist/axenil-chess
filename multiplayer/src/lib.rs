@@ -131,26 +131,33 @@ fn recieve_message(
     mut buffer: [u8; 5],
     expect_message: Option<Message>,
 ) -> Result<[u8; 5]> {
-    if let Ok(()) = stream.read_exact(&mut buffer[..]) {
+    if let Ok(len) = stream.read(&mut buffer[..]) {
         if buffer == [255; 5] {
             return Ok(buffer);
         }
-        if let Some(mess) = expect_message {
-            if mess == buffer[0] {
-                println!("Got expected {}!", mess);
-                Ok(buffer)
+        if len <= buffer.len() {
+            if let Some(mess) = expect_message {
+                if mess == buffer[0] {
+                    println!("Got expected {}!", mess);
+                    Ok(buffer)
+                } else {
+                    Err(Error::new(
+                        ErrorKind::Other,
+                        format!(
+                            "Expected message not recieved! Got: {}",
+                            Message::from(buffer[0])
+                        ),
+                    ))
+                }
             } else {
-                Err(Error::new(
-                    ErrorKind::Other,
-                    format!(
-                        "Expected message not recieved! Got: {}",
-                        Message::from(buffer[0])
-                    ),
-                ))
+                println!("Recieved {}!", Message::from(buffer[0]));
+                Ok(buffer)
             }
         } else {
-            println!("Recieved {}!", Message::from(buffer[0]));
-            Ok(buffer)
+            Err(Error::new(
+                ErrorKind::Other,
+                "Buffer shorter than message!".to_string(),
+            ))
         }
     } else {
         let mut buff = [0 as u8; 1024];
