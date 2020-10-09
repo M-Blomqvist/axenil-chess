@@ -33,6 +33,7 @@ fn start_host(ip: SocketAddrV4) -> Result<()> {
     println!("Started host at {}", ip);
     if let Ok((mut stream, client)) = listener.accept() {
         println!("Connection from {}", client);
+        stream.set_nonblocking(true)?;
 
         let mut buffer = [255; 5];
         recieve_message(&mut stream, buffer, Some(Message::Accept))?;
@@ -41,7 +42,7 @@ fn start_host(ip: SocketAddrV4) -> Result<()> {
         println!("{:?}", buffer.iter());
         let (sender, reciever) = channel::<[u8; 5]>();
         let handle = thread::spawn(move || {
-            std_loop(stream, reciever, false);
+            std_loop(stream, reciever);
         });
 
         handle.join().unwrap();
@@ -57,7 +58,7 @@ fn start_host(ip: SocketAddrV4) -> Result<()> {
 fn connect_client(ip: SocketAddrV4) -> Result<()> {
     if let Ok(mut stream) = TcpStream::connect(ip) {
         println!("Connection established to: {}", ip);
-
+        stream.set_nonblocking(true)?;
         send_message(&mut stream, Message::Accept)?;
 
         let buffer = [255; 5];
@@ -65,7 +66,7 @@ fn connect_client(ip: SocketAddrV4) -> Result<()> {
 
         let (sender, reciever) = channel::<[u8; 5]>();
         let handle = thread::spawn(move || {
-            std_loop(stream, reciever, true);
+            std_loop(stream, reciever);
         });
         for i in 0..6 {
             sender.send([i; 5]).expect("failed in sending message");
@@ -78,10 +79,10 @@ fn connect_client(ip: SocketAddrV4) -> Result<()> {
     }
 }
 
-fn std_loop(mut stream: TcpStream, rx: Receiver<[u8; 5]>, mut is_sending: bool) {
+fn std_loop(mut stream: TcpStream, rx: Receiver<[u8; 5]>) {
     loop {
         let buffer = [255; 5];
-        if is_sending {
+        if let Ok(message) = rx.try_recv() {
             let message = [Message::Accept as u8; 5];
             let message_type = Message::from(message);
             if message_type != Message::Move {
@@ -97,7 +98,6 @@ fn std_loop(mut stream: TcpStream, rx: Receiver<[u8; 5]>, mut is_sending: bool) 
                 println!("{}", result.unwrap_err().to_string());
             }
         }
-        is_sending = !is_sending;
         thread::sleep(Duration::from_millis(10));
     }
 }
@@ -123,7 +123,7 @@ fn recieve_message(
     mut buffer: [u8; 5],
     expect_message: Option<Message>,
 ) -> Result<[u8; 5]> {
-    println!("{:?}", stream.bytes());
+    //println!("{:?}", stream.bytes());
     let result = stream.read(&mut buffer[..]);
     if result.is_ok() {
         if buffer == [255; 5] {
