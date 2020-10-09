@@ -121,6 +121,7 @@ name = "chess_gui"
 version = "0.1.0"
 dependencies = [
  "find_folder",
+ "multiplayer",
  "piston",
  "piston2d-graphics",
  "piston2d-opengl_graphics",
@@ -614,9 +615,6 @@ dependencies = [
 [[package]]
 name = "multiplayer"
 version = "0.1.0"
-dependencies = [
- "chess_gui",
-]
 
 [[package]]
 name = "nix"

@@ -8,10 +8,11 @@ use piston::{
     input::RenderEvent,
     window::WindowSettings,
 };
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, env, path::Path, sync::mpsc::Sender};
 
 use crate::chess_controller::ChessController;
 use crate::chess_gui_view::{ChessView, ViewSettings};
+use multiplayer::start_multiplayer;
 use rust_chess::*;
 mod chess_controller;
 mod chess_gui_view;
@@ -30,7 +31,16 @@ fn main() {
 
     let imgs = load_imgs();
 
-    let mut chess_controller = ChessController::new(chess_board);
+    let args: Vec<String> = env::args().collect();
+    println!("Running {}...", args[0]);
+    let mut online_connection: Option<Sender<[u8; 5]>> = None;
+    if args.contains(&"host".to_string()) || args.contains(&"connect".to_string()) {
+        if let Ok((sender, handle)) = start_multiplayer(&args[1], &args[2]) {
+            online_connection = Some(sender);
+        }
+    }
+
+    let mut chess_controller = ChessController::new(chess_board, online_connection);
     let chess_view = ChessView::new(ViewSettings::default_view(settings.get_size().width, imgs));
 
     while let Some(event) = events.next(&mut window) {

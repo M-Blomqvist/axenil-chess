@@ -103,8 +103,9 @@ fn std_loop(mut stream: TcpStream, rx: Receiver<[u8; 5]>) {
             if message_type != Message::Move {
                 if let Err(error) = send_message(&mut stream, message_type) {
                     println!("Error sending message: {}", error.to_string());
-                } else {
                 }
+            } else if let Err(error) = send_move(&mut stream, message) {
+                println!("Error sending message: {}", error.to_string());
             }
         } else {
             let result = recieve_message(&mut stream, buffer, None);
@@ -129,12 +130,12 @@ fn send_message(stream: &mut TcpStream, message: Message) -> Result<()> {
     Ok(())
 }
 
-// fn send_move(stream: &mut TcpStream, message: MoveMessage) -> Result<String> {
-//     let message_string = message.to_string();
-//     stream.write_all(&message)?;
-//     stream.flush()?;
-//     Ok(format!("Sent {}...", message_string))
-// }
+fn send_move(stream: &mut TcpStream, message: [u8; 5]) -> Result<String> {
+    let message_string = message[0].to_string();
+    let s = stream.write(&message)?;
+    stream.flush()?;
+    Ok(format!("Sent {}...", message_string))
+}
 
 fn recieve_message(
     stream: &mut TcpStream,

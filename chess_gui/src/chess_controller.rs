@@ -1,5 +1,6 @@
 use piston::input::{Button, GenericEvent, MouseButton};
 use rust_chess::*;
+use std::sync::mpsc::Sender;
 
 pub struct ChessController {
     pub chess_board: rust_chess::board::Board,
@@ -9,10 +10,14 @@ pub struct ChessController {
     pub highlighted_spaces: Option<Vec<(i64, i64)>>,
     pub mouse_pos: [f64; 2],
     pub castling_possible: Vec<(String, (i64, i64))>,
+    pub online_connection: Option<Sender<[u8; 5]>>,
 }
 
 impl ChessController {
-    pub fn new(chess_board: rust_chess::board::Board) -> ChessController {
+    pub fn new(
+        chess_board: rust_chess::board::Board,
+        online_connection: Option<(Sender<[u8; 5]>)>,
+    ) -> ChessController {
         let mut controller = ChessController {
             chess_board,
             game_over: false,
@@ -21,6 +26,7 @@ impl ChessController {
             highlighted_spaces: None,
             mouse_pos: [0.0; 2],
             castling_possible: Vec::new(),
+            online_connection,
         };
         controller.update_board();
         controller
@@ -61,6 +67,9 @@ impl ChessController {
         }
         if let Some(Button::Mouse(MouseButton::Left)) = event.press_args() {
             if !self.game_over {
+                if let Some(sender) = &mut self.online_connection {
+                    sender.send([0x03; 5]);
+                }
                 let (x, y) = (
                     self.mouse_pos[0] - view_pos[0],
                     self.mouse_pos[1] - view_pos[1],

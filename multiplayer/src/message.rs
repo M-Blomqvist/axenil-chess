@@ -11,11 +11,11 @@ pub enum Message {
 }
 
 pub enum MoveMessage {
-    Standard(),
-    En_Passant(),
-    Promotion(),
-    Kingside_castle(),
-    Queenside_castle(),
+    Standard(u8, u8),
+    En_Passant(u8, u8),
+    Promotion(u8, u8, u8),
+    Kingside_castle(u8),
+    Queenside_castle(u8),
 }
 
 impl PartialEq<Message> for MoveMessage {
@@ -38,8 +38,8 @@ impl From<u8> for Message {
             0x02 => Message::Undo,
             0x03 => Message::Accept,
             0x04 => Message::Checkmate,
-            0x06 => Message::Draw,
-            0x05 => Message::Resign,
+            0x05 => Message::Draw,
+            0x06 => Message::Resign,
             _ => Message::Unknown,
         }
     }
@@ -53,8 +53,8 @@ impl From<[u8; 5]> for Message {
             0x02 => Message::Undo,
             0x03 => Message::Accept,
             0x04 => Message::Checkmate,
-            0x06 => Message::Draw,
-            0x05 => Message::Resign,
+            0x05 => Message::Draw,
+            0x06 => Message::Resign,
             _ => Message::Unknown,
         }
     }

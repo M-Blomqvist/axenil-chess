@@ -10,5 +10,6 @@ fn main() {
                 .expect("failed in sending message");
             thread::sleep(Duration::from_millis(100))
         }
+        handle.join().unwrap();
     }
 }

@@ -14,5 +14,4 @@ name = "multiplayer"
 path = "src/bin.rs"
 
 [dependencies]
-chess_gui = {path = "../chess_gui"}
 
