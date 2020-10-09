@@ -93,7 +93,22 @@ impl ChessController {
         if let Some(Button::Mouse(MouseButton::Left)) = event.press_args() {
             if !self.game_over {
                 if let Some(connection) = &mut self.online_connection {
-                    connection.0.send([0x03; 5]);
+                    if let Ok(message) = connection.1.try_recv() {
+                        println!("bap");
+                        if Message::Move == message[0]
+                            && !self
+                                .chess_board
+                                .make_move(&chess_communicator::process_move(&message).unwrap())
+                                .1
+                        {
+                            connection
+                                .0
+                                .send([Message::Decline as u8; 5])
+                                .expect("error sending decline message!")
+                        } else {
+                            self.update_board();
+                        }
+                    }
                 }
                 let (x, y) = (
                     self.mouse_pos[0] - view_pos[0],
