@@ -87,32 +87,32 @@ impl ChessController {
         view_grid_width: f64,
         event: &E,
     ) {
+        if let Some(connection) = &mut self.online_connection {
+            if let Ok(message) = connection.1.try_recv() {
+                if Message::Move == message[0] {
+                    let mov = chess_communicator::process_move(&message).unwrap();
+                    if !self.chess_board.make_move(&mov).1 {
+                        connection
+                            .0
+                            .send([Message::Decline as u8; 5])
+                            .expect("error sending move decline message!")
+                    } else {
+                        connection
+                            .0
+                            .send([Message::Accept as u8; 5])
+                            .expect("error sending move accept message!")
+                    }
+                    self.update_board();
+                } else {
+                }
+            }
+        }
+
         if let Some(pos) = event.mouse_cursor_args() {
             self.mouse_pos = pos;
         }
         if let Some(Button::Mouse(MouseButton::Left)) = event.press_args() {
             if !self.game_over {
-                if let Some(connection) = &mut self.online_connection {
-                    if let Ok(message) = connection.1.try_recv() {
-                        if Message::Move == message[0] {
-                            let mov = chess_communicator::process_move(&message).unwrap();
-                            println!("{}", mov);
-                            if !self.chess_board.make_move(&mov).1 {
-                                connection
-                                    .0
-                                    .send([Message::Decline as u8; 5])
-                                    .expect("error sending move decline message!")
-                            } else {
-                                connection
-                                    .0
-                                    .send([Message::Accept as u8; 5])
-                                    .expect("error sending move accept message!")
-                            }
-                        } else {
-                            self.update_board();
-                        }
-                    }
-                }
                 let (x, y) = (
                     self.mouse_pos[0] - view_pos[0],
                     self.mouse_pos[1] - view_pos[1],
@@ -128,6 +128,7 @@ impl ChessController {
                     && (y - (int_y + 1) as f64 * ((view_size - view_grid_width) / 8.0)) < 0.0
                 {
                     let (x, y) = (int_x, 7 - int_y);
+                    println!("{},{}", x, y);
                     if let Some(highlighted_spaces) = &self.highlighted_spaces {
                         for spaces in highlighted_spaces {
                             if x == spaces.0 as u8 && y == 7 - spaces.1 as u8 {

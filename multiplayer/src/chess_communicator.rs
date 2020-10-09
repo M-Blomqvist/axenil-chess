@@ -8,7 +8,8 @@ pub fn process_move(input: &[u8; 5]) -> Result<String, String> {
                 let new_pos = bits_to_coord(&input[3]);
                 let pos = position_to_string(pos.1, pos.0);
                 let new_pos = position_to_string(new_pos.1, new_pos.0);
-                let mov = pos + " " + new_pos.as_str();
+                let mov = new_pos + " " + pos.as_str();
+                println!("{}", mov);
                 Ok(mov)
             }
             0x01 => {
@@ -46,12 +47,12 @@ pub fn move_to_bytes(input: String) -> [u8; 5] {
         let mut input = input.split_whitespace();
         let (pos_x, pos_y) = string_to_position(input.next().unwrap());
         let (new_x, new_y) = string_to_position(input.next().unwrap());
-        let pos_bin = pos_x as u8 + (pos_y << 3) as u8;
-        let new_bin = new_x as u8 + (new_y << 3) as u8;
+        let pos_bin = pos_x as u8 + (pos_y << 2) as u8;
+        let new_bin = new_x as u8 + (new_y << 2) as u8;
         [0x01, 0x00, pos_bin, new_bin, 255]
     }
 }
 
 fn bits_to_coord(byte: &u8) -> (u8, u8) {
-    (byte & 0b0000_0111, byte & 0b0011_100)
+    (byte & 0b0000_0111, (byte & 0b0011_100) >> 2)
 }
