@@ -6,6 +6,7 @@ fn main() {
     if let Ok((message_sender, handle)) = multiplayer::start_multiplayer(&args[1], &args[2]) {
         for i in 0..6 {
             message_sender
+                .0
                 .send([i; 5])
                 .expect("failed in sending message");
             thread::sleep(Duration::from_millis(100))

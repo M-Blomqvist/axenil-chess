@@ -11,10 +11,12 @@ pub mod chess_communicator;
 pub mod message;
 use message::{Message, MoveMessage};
 
+pub type OnlineConnection<T> = (Sender<T>, Receiver<T>);
+
 pub fn start_multiplayer(
     connect_type: &str,
     ip: &str,
-) -> Result<((Sender<[u8; 5]>, JoinHandle<()>))> {
+) -> Result<(OnlineConnection<[u8; 5]>, JoinHandle<()>)> {
     let is_host = match connect_type {
         "host" => true,
         "connect" => false,
@@ -31,7 +33,7 @@ pub fn start_multiplayer(
     }
 }
 
-fn start_host(ip: SocketAddrV4) -> Result<((Sender<[u8; 5]>, JoinHandle<()>))> {
+fn start_host(ip: SocketAddrV4) -> Result<(OnlineConnection<[u8; 5]>, JoinHandle<()>)> {
     let listener = TcpListener::bind(ip).unwrap();
     println!("Started host at {}", ip);
     if let Ok((mut stream, client)) = listener.accept() {
@@ -52,11 +54,12 @@ fn start_host(ip: SocketAddrV4) -> Result<((Sender<[u8; 5]>, JoinHandle<()>))> {
         }
         send_message(&mut stream, Message::Accept)?;
 
-        let (sender, reciever) = channel::<[u8; 5]>();
+        let (out_sender, out_reciever) = channel::<[u8; 5]>();
+        let (in_sender, in_reciever) = channel::<[u8; 5]>();
         let handle = thread::spawn(move || {
-            std_loop(stream, reciever);
+            std_loop(stream, (in_sender, out_reciever));
         });
-        Ok((sender, handle))
+        Ok(((out_sender, in_reciever), handle))
     } else {
         Err(Error::new(
             ErrorKind::Other,
@@ -65,7 +68,7 @@ fn start_host(ip: SocketAddrV4) -> Result<((Sender<[u8; 5]>, JoinHandle<()>))> {
     }
 }
 
-fn connect_client(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)> {
+fn connect_client(ip: SocketAddrV4) -> Result<(OnlineConnection<[u8; 5]>, JoinHandle<()>)> {
     if let Ok(mut stream) = TcpStream::connect(ip) {
         println!("Connection established to: {}", ip);
         stream.set_nonblocking(true)?;
@@ -85,20 +88,21 @@ fn connect_client(ip: SocketAddrV4) -> Result<(Sender<[u8; 5]>, JoinHandle<()>)>
             }
         }
 
-        let (sender, reciever) = channel::<[u8; 5]>();
+        let (out_sender, out_reciever) = channel::<[u8; 5]>();
+        let (in_sender, in_reciever) = channel::<[u8; 5]>();
         let handle = thread::spawn(move || {
-            std_loop(stream, reciever);
+            std_loop(stream, (in_sender, out_reciever));
         });
-        Ok((sender, handle))
+        Ok(((out_sender, in_reciever), handle))
     } else {
         panic!("Error connecting to {}", ip);
     }
 }
 
-fn std_loop(mut stream: TcpStream, rx: Receiver<[u8; 5]>) {
+fn std_loop(mut stream: TcpStream, connection: OnlineConnection<[u8; 5]>) {
     loop {
         let buffer = [255; 5];
-        if let Ok(message) = rx.try_recv() {
+        if let Ok(message) = connection.1.try_recv() {
             let message_type = Message::from(message);
             if message_type != Message::Move {
                 if let Err(error) = send_message(&mut stream, message_type) {
@@ -110,7 +114,12 @@ fn std_loop(mut stream: TcpStream, rx: Receiver<[u8; 5]>) {
         } else {
             let result = recieve_message(&mut stream, buffer, None);
             if let Ok(message) = result {
-                if message != [255; 5] {}
+                if message != [255; 5] {
+                    connection
+                        .0
+                        .send(message)
+                        .expect("Error sending message from reciever thread");
+                }
             } else {
                 let err = result.unwrap_err();
                 if err.kind() != ErrorKind::WouldBlock {

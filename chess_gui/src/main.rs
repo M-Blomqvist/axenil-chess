@@ -8,7 +8,12 @@ use piston::{
     input::RenderEvent,
     window::WindowSettings,
 };
-use std::{collections::HashMap, env, path::Path, sync::mpsc::Sender};
+use std::{
+    collections::HashMap,
+    env,
+    path::Path,
+    sync::mpsc::{Receiver, Sender},
+};
 
 use crate::chess_controller::ChessController;
 use crate::chess_gui_view::{ChessView, ViewSettings};
@@ -33,10 +38,10 @@ fn main() {
 
     let args: Vec<String> = env::args().collect();
     println!("Running {}...", args[0]);
-    let mut online_connection: Option<Sender<[u8; 5]>> = None;
+    let mut online_connection: Option<(Sender<[u8; 5]>, Receiver<[u8; 5]>)> = None;
     if args.contains(&"host".to_string()) || args.contains(&"connect".to_string()) {
-        if let Ok((sender, handle)) = start_multiplayer(&args[1], &args[2]) {
-            online_connection = Some(sender);
+        if let Ok((connection, handle)) = start_multiplayer(&args[1], &args[2]) {
+            online_connection = Some(connection);
         }
     }
 
