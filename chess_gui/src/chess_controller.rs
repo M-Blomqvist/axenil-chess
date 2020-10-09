@@ -1,6 +1,6 @@
-use multiplayer::OnlineConnection;
+use multiplayer::{chess_communicator, message::Message, OnlineConnection};
 use piston::input::{Button, GenericEvent, MouseButton};
-use rust_chess::*;
+use rust_chess::{units::Color, *};
 use std::sync::mpsc::{Receiver, Sender};
 
 pub struct ChessController {
@@ -12,12 +12,14 @@ pub struct ChessController {
     pub mouse_pos: [f64; 2],
     pub castling_possible: Vec<(String, (i64, i64))>,
     pub online_connection: Option<OnlineConnection<[u8; 5]>>,
+    pub player_color: Option<Color>,
 }
 
 impl ChessController {
     pub fn new(
         chess_board: rust_chess::board::Board,
         online_connection: Option<OnlineConnection<[u8; 5]>>,
+        player_color: Option<Color>,
     ) -> ChessController {
         let mut controller = ChessController {
             chess_board,
@@ -28,6 +30,7 @@ impl ChessController {
             mouse_pos: [0.0; 2],
             castling_possible: Vec::new(),
             online_connection,
+            player_color,
         };
         controller.update_board();
         controller
@@ -53,6 +56,27 @@ impl ChessController {
                     self.board_string[y][x] = piece_str;
                 }
             }
+        }
+    }
+
+    fn exec_move(&mut self, mov: &str) {
+        if let Some(connection) = &self.online_connection {
+            connection
+                .0
+                .send(chess_communicator::move_to_bytes(mov.to_string()));
+            if let Ok(message) = connection.1.recv() {
+                if Message::Accept == message[0] {
+                    self.game_over = self.chess_board.make_move(mov).0;
+                    self.update_board();
+                } else {
+                    println!("move not accepted by opponent!");
+                }
+            } else {
+                println!("error recieving return message after move");
+            }
+        } else {
+            self.game_over = self.chess_board.make_move(mov).0;
+            self.update_board();
         }
     }
 
@@ -90,11 +114,9 @@ impl ChessController {
                         for spaces in highlighted_spaces {
                             if x == spaces.0 as u8 && y == 7 - spaces.1 as u8 {
                                 //castling workaround!
-                                for castling in &self.castling_possible {
+                                for castling in self.castling_possible.to_owned() {
                                     if x == (castling.1).0 as u8 && y == 7 - (castling.1).1 as u8 {
-                                        self.game_over =
-                                            self.chess_board.make_move(castling.0.as_str()).0;
-                                        self.update_board();
+                                        self.exec_move(castling.0.as_str());
                                         break;
                                     }
                                 }
@@ -122,8 +144,7 @@ impl ChessController {
                                         input.push_str("=Q");
                                     }
                                 }
-                                self.game_over = self.chess_board.make_move(input.as_str()).0;
-                                self.update_board();
+                                self.exec_move(input.as_str());
                                 break;
                             }
                         }

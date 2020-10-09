@@ -115,10 +115,17 @@ fn std_loop(mut stream: TcpStream, connection: OnlineConnection<[u8; 5]>) {
             let result = recieve_message(&mut stream, buffer, None);
             if let Ok(message) = result {
                 if message != [255; 5] {
-                    connection
-                        .0
-                        .send(message)
-                        .expect("Error sending message from reciever thread");
+                    if Message::Move == message[0] {
+                        connection
+                            .0
+                            .send([Message::Accept as u8; 5])
+                            .expect("Error sending message from reciever thread");
+                    } else {
+                        // connection
+                        //     .0
+                        //     .send(message)
+                        //     .expect("Error sending message from reciever thread");
+                    }
                 }
             } else {
                 let err = result.unwrap_err();

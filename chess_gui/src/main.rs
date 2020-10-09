@@ -18,7 +18,7 @@ use std::{
 use crate::chess_controller::ChessController;
 use crate::chess_gui_view::{ChessView, ViewSettings};
 use multiplayer::start_multiplayer;
-use rust_chess::*;
+use rust_chess::{units::Color, *};
 mod chess_controller;
 mod chess_gui_view;
 fn main() {
@@ -39,13 +39,21 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     println!("Running {}...", args[0]);
     let mut online_connection: Option<(Sender<[u8; 5]>, Receiver<[u8; 5]>)> = None;
-    if args.contains(&"host".to_string()) || args.contains(&"connect".to_string()) {
+    let mut player_color = None;
+    if args.contains(&"host".to_string()) {
         if let Ok((connection, handle)) = start_multiplayer(&args[1], &args[2]) {
             online_connection = Some(connection);
+            player_color = Some(Color::White);
+        }
+    }
+    if args.contains(&"connect".to_string()) {
+        if let Ok((connection, handle)) = start_multiplayer(&args[1], &args[2]) {
+            online_connection = Some(connection);
+            player_color = Some(Color::Black);
         }
     }
 
-    let mut chess_controller = ChessController::new(chess_board, online_connection);
+    let mut chess_controller = ChessController::new(chess_board, online_connection, player_color);
     let chess_view = ChessView::new(ViewSettings::default_view(settings.get_size().width, imgs));
 
     while let Some(event) = events.next(&mut window) {
