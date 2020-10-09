@@ -115,7 +115,7 @@ fn std_loop(mut stream: TcpStream, connection: OnlineConnection<[u8; 5]>) {
             let result = recieve_message(&mut stream, buffer, None);
             if let Ok(message) = result {
                 if message != [255; 5] {
-                    if Message::Move == message[0] {
+                    if Message::Move != message[0] {
                         if let Err(error) = send_message(&mut stream, Message::Accept) {
                             println!("Error sending message: {}", error.to_string());
                         }

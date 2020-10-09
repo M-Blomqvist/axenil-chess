@@ -94,17 +94,20 @@ impl ChessController {
             if !self.game_over {
                 if let Some(connection) = &mut self.online_connection {
                     if let Ok(message) = connection.1.try_recv() {
-                        println!("bap");
-                        if Message::Move == message[0]
-                            && !self
-                                .chess_board
-                                .make_move(&chess_communicator::process_move(&message).unwrap())
-                                .1
-                        {
-                            connection
-                                .0
-                                .send([Message::Decline as u8; 5])
-                                .expect("error sending decline message!")
+                        if Message::Move == message[0] {
+                            let mov = chess_communicator::process_move(&message).unwrap();
+                            println!("{}", mov);
+                            if !self.chess_board.make_move(&mov).1 {
+                                connection
+                                    .0
+                                    .send([Message::Decline as u8; 5])
+                                    .expect("error sending move decline message!")
+                            } else {
+                                connection
+                                    .0
+                                    .send([Message::Accept as u8; 5])
+                                    .expect("error sending move accept message!")
+                            }
                         } else {
                             self.update_board();
                         }

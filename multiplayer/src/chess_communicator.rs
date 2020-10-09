@@ -1,6 +1,7 @@
 use rust_chess::board::{position_to_string, string_to_position};
 pub fn process_move(input: &[u8; 5]) -> Result<String, String> {
     if input[0] == 0x01 {
+        println!("{:?}", input);
         match input[1] {
             0x00 => {
                 let pos = bits_to_coord(&input[2]);
@@ -47,7 +48,7 @@ pub fn move_to_bytes(input: String) -> [u8; 5] {
         let (new_x, new_y) = string_to_position(input.next().unwrap());
         let pos_bin = pos_x as u8 + (pos_y << 3) as u8;
         let new_bin = new_x as u8 + (new_y << 3) as u8;
-        [0x01, pos_bin, new_bin, 255, 255]
+        [0x01, 0x00, pos_bin, new_bin, 255]
     }
 }
 
