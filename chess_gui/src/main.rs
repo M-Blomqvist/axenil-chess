@@ -27,7 +27,7 @@ fn main() {
     let settings = WindowSettings::new("chessGUI", [600; 2]).exit_on_esc(true); //Only supports square resolutions
     let mut window: GlutinWindow = settings.build().expect("Error building Glutin_window!");
 
-    let mut events = Events::new(EventSettings::new().lazy(true));
+    let mut events = Events::new(EventSettings::new().lazy(false));
     let mut gl = GlGraphics::new(opengl);
 
     let mut chess_board = init_chess();
